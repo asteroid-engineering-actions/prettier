@@ -5,4 +5,4 @@ COPY .prettierrc /default-prettier-config.json
 
 RUN node --version && npm --version && npm install -g prettier
 
-#ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
