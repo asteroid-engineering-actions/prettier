@@ -3,3 +3,8 @@ description: 'Greet someone and record the time'
 runs:
   using: 'docker'
   image: 'Dockerfile'
+outputs:
+  check_exit_code:
+    description: "The Prettier CLI check Exit Code"
+  check_output:
+    description: "The Prettier CLI check Output"
