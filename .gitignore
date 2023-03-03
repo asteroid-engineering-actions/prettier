@@ -1,0 +1,4 @@
+# Misc IDE and OS
+.vscode
+.idea
+.DS_Store
