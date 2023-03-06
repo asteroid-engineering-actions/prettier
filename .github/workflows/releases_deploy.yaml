@@ -20,9 +20,10 @@ jobs:
         uses: docker/setup-qemu-action@v2
       - name: Setup BuildX
         uses: docker/setup-buildx-action@v2
+      - name: Build and push
+        uses: docker/build-push-action@v4
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
           tags: asteroid-engineering-actions/prettier:0.3.1
-          
