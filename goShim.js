@@ -11,10 +11,12 @@ function getBinary() {
         linux: {
             arm64: 'ae_prettier_action_linux_arm64',
             amd64: 'ae_prettier_action_linux_amd64',
+            x64: 'ae_prettier_action_linux_amd64',
         },
         win32: {
             arm64: 'ae_prettier_action_windows_arm64.exe',
             amd64: 'ae_prettier_action_windows_amd64.exe',
+            x64: 'ae_prettier_action_windows_amd64.exe',
         },
     }
 
