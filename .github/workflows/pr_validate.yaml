@@ -84,3 +84,7 @@ jobs:
           git push
         working-directory: ./
         name: Commit Build Outputs
+      - name: Run Self
+        uses: ./
+        with:
+          name: "Dimorphos"
