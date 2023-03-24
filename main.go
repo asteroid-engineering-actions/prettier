@@ -13,17 +13,13 @@ import (
 )
 
 func main() {
-	aboutMe := flag.Bool("aboutme", false, "Print AboutMe")
 	flag.Parse()
 
 	if version.VersionFlag {
 		version.PrintVersion(os.Stdout)
 	}
 
-	if *aboutMe {
-		fmt.Printf("Asteroid Engineering: Prettier Action\nVersion: %s\non: %s_%s\n", version.String(), runtime.GOOS, runtime.GOARCH)
-		os.Exit(0)
-	}
+	fmt.Printf("Asteroid Engineering: Prettier Action\nVersion: %s\non: %s_%s\n", version.String(), runtime.GOOS, runtime.GOARCH)
 
 	action := githubactions.New()
 
