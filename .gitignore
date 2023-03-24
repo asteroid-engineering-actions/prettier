@@ -2,3 +2,12 @@
 .vscode
 .idea
 .DS_Store
+
+#########
+# Node
+#########
+
+node_modules/
+
+# Optional npm cache directory
+.npm

@@ -1,0 +1,86 @@
+name: pr-validate
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    branches:
+      - main
+  workflow_dispatch:
+jobs:
+  test_build_push:
+    name: Test, Build, Push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16.16.0'
+      - run: |
+          npm install
+          npm run build
+        working-directory: ./prettier_wrapper
+        name: Build Prettier Wrapper JS
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.20.2'
+      - run: |
+          go test -v ./...
+        working-directory: ./
+        name: Test Action
+      - run: |
+          set -euo pipefail
+          IFS=$'\n\t'
+          
+          LDFLAGS="-X 'github.com/asteroid-engineering-actions/prettier/version.BuildMetadata=${{ github.run_id }}.${{ github.run_attempt }}'"
+          platforms=("windows/amd64" "windows/386" "darwin/amd64" "darwin/arm64" "linux/amd64" "linux/arm64")
+          
+          build_go() {
+            output="ae_prettier_action_${platform_split[0]}_${platform_split[1]}"
+            
+            if [[ "${platform_split[0]}" == "windows" ]]
+            then
+              output="$output.exe"
+            fi
+            
+            echo "Building binary $output 🚧"
+            
+            env GOOS=${platform_split[0]} GOARCH=${platform_split[1]} go build -trimpath -ldflags="$LDFLAGS" -o dist/$output main.go
+            
+            echo "Finished building $output ✅"
+          }
+          
+          IFS=$'/'
+          for platform in "${platforms[@]}"
+          do
+            read -r -a platform_split <<< "$platform"
+          
+            build_go &
+          done
+          IFS=$'\n\t'
+          
+          wait
+          
+          cd dist
+          
+          find . -exec touch -t `git ls-files -z ../**/*.go | \
+          xargs -0 -n1 -I{} -- git log -1 --date=format:"%Y%m%d%H%M" --format="%ad" {} | \
+          sort -r | head -n 1` {} +
+          
+          cd -
+        working-directory: ./
+        name: Build Go Binaries
+      - run: |
+          git config user.name "Dimorphos"
+          git config user.email "dimorphos_asteroid@asteroid.engineering"
+          git add --all
+          git commit -m "Add action build output"
+          git push
+        working-directory: ./
+        name: Commit Build Outputs
