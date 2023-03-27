@@ -1,12 +1,76 @@
 name: release-deploy
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 jobs:
   build_push_docker:
     name: Publish Release
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
     steps:
       - uses: actions/checkout@v3
+      - name: Get Action Version
+        id: get-metadata
+        run: |
+          VERSION=$(./dist/ae_prettier_action_linux_amd64 -version)
+          
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          VERSION="${VERSION#[vV]}"
+          
+          Mmp="${VERSION%+*}"
+          Mmp="${Mmp%-*}"
+
+          IFS=$'.'
+          read -r -a Mmp <<< "$Mmp"
+          IFS=$'\n\t'
+
+          VERSION_MAJOR="${Mmp[0]}"
+          VERSION_MINOR="${Mmp[1]:-x}"
+          VERSION_PATCH="${Mmp[2]:-x}"
+
+          VERSION_PRERELEASE="${VERSION#*-}"
+
+          if [[ "$VERSION" == "$VERSION_PRERELEASE" ]];
+          then
+              VERSION_PRERELEASE=""
+          else
+              VERSION_PRERELEASE="${VERSION_PRERELEASE%+*}"
+          fi
+
+          BUILD_METADATA="${VERSION#*+}"
+
+          if [[ "$BUILD_METADATA" == "$VERSION" ]];
+          then
+              BUILD_METADATA=""
+          fi
+
+          echo "Version Major: $VERSION_MAJOR"
+          echo "VERSION_MAJOR=$VERSION_MAJOR" >> $GITHUB_OUTPUT
+          
+          echo "Version Minor: $VERSION_MINOR"
+          echo "VERSION_MINOR=$VERSION_MINOR" >> $GITHUB_OUTPUT
+          
+          echo "Version Patch: $VERSION_PATCH"
+          echo "VERSION_PATCH=$VERSION_PATCH" >> $GITHUB_OUTPUT
+          
+          echo "Version PreRelease: $VERSION_PRERELEASE"
+          echo "VERSION_PRERELEASE=$VERSION_PRERELEASE" >> $GITHUB_OUTPUT
+          
+          echo "Build Metadata: $BUILD_METADATA"
+          echo "BUILD_METADATA=$BUILD_METADATA" >> $GITHUB_OUTPUT
+      - name: Add and Update Git Tags
+        id: add-update-tags
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const versionMajor = '${{ steps.get-metadata.outputs.VERSION_MAJOR }}';
+            const versionMinor = '${{ steps.get-metadata.outputs.VERSION_MINOR }}';
+            const versionPatch = '${{ steps.get-metadata.outputs.VERSION_PATCH }}';
+            const versionPreRelease = '${{ steps.get-metadata.outputs.VERSION_PRERELEASE }}';
+            const buildMetadata = '${{ steps.get-metadata.outputs.BUILD_METADATA }}';
+            
+            console.log(`Build Version: v${versionMajor}.${versionMinor}.${versionPatch}-${versionPreRelease}+${buildMetadata}`);

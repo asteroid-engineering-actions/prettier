@@ -44,7 +44,7 @@ jobs:
           build_go() {
             output="ae_prettier_action_${platform_split[0]}_${platform_split[1]}"
             
-            if [[ "${platform_split[0]}" == "windows" ]]
+            if [[ "${platform_split[0]}" == "windows" ]];
             then
               output="$output.exe"
             fi
@@ -76,14 +76,22 @@ jobs:
           cd -
         working-directory: ./
         name: Build Go Binaries
-      - run: |
-          git config user.name "Dimorphos"
-          git config user.email "dimorphos_asteroid@asteroid.engineering"
-          git add --all
-          git commit -m "Add action build output"
-          git push
+      - name: Commit Build Outputs
+        if: github.event_name == 'pull_request'
+        run: |
+          if [[ -n "$(git status --porcelain)" ]];
+          then
+            echo "Build outputs have changed... adding commit"
+          
+            git config user.name "Dimorphos"
+            git config user.email "dimorphos_asteroid@asteroid.engineering"
+            git add --all
+            git commit -m "Add action build output"
+            git push
+          else
+            echo "Build outputs have not changed"
+          fi
         working-directory: ./
-        name: Commit Build Outputs
       - name: Run Self
         uses: ./
         with:
