@@ -73,4 +73,14 @@ jobs:
             const versionPreRelease = '${{ steps.get-metadata.outputs.VERSION_PRERELEASE }}';
             const buildMetadata = '${{ steps.get-metadata.outputs.BUILD_METADATA }}';
             
-            console.log(`Build Version: v${versionMajor}.${versionMinor}.${versionPatch}-${versionPreRelease}+${buildMetadata}`);
+            const core = `${versionMajor}.${versionMinor}.${versionPatch}`;
+            const isPreRelease = '' !== versionPreRelease;
+            const hasBuildMetadata = '' !== buildMetadata;
+            
+            console.log(`Build Version: v${versionMajor}.${versionMinor}.${versionPatch}${isPreRelease ? '-' : ''}${versionPreRelease}${hasBuildMetadata ? '+' : ''}${buildMetadata}`);
+            
+            if (isPreRelease) {
+              console.log('Is PreRelease, only adding vM.m.p-P tag');
+            } else {
+              console.log('Not PrRelease, adding vM, vM.m, vM.m.p tags');
+            }
