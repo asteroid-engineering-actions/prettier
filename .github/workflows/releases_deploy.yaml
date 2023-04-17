@@ -17,10 +17,10 @@ jobs:
         id: get-metadata
         run: |
           VERSION=$(./dist/ae_prettier_action_linux_amd64 -version)
-          
+
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           VERSION="${VERSION#[vV]}"
-          
+
           Mmp="${VERSION%+*}"
           Mmp="${Mmp%-*}"
 
@@ -50,37 +50,39 @@ jobs:
 
           echo "Version Major: $VERSION_MAJOR"
           echo "VERSION_MAJOR=$VERSION_MAJOR" >> $GITHUB_OUTPUT
-          
+
           echo "Version Minor: $VERSION_MINOR"
           echo "VERSION_MINOR=$VERSION_MINOR" >> $GITHUB_OUTPUT
-          
+
           echo "Version Patch: $VERSION_PATCH"
           echo "VERSION_PATCH=$VERSION_PATCH" >> $GITHUB_OUTPUT
-          
+
           echo "Version PreRelease: $VERSION_PRERELEASE"
           echo "VERSION_PRERELEASE=$VERSION_PRERELEASE" >> $GITHUB_OUTPUT
-          
+
           echo "Build Metadata: $BUILD_METADATA"
           echo "BUILD_METADATA=$BUILD_METADATA" >> $GITHUB_OUTPUT
       - name: Add and Update Git Tags
         id: add-update-tags
         uses: actions/github-script@v6
+        env:
+          AE_VERSION_MAJOR: '${{ steps.get-metadata.outputs.VERSION_MAJOR }}'
+          AE_VERSION_MINOR: '${{ steps.get-metadata.outputs.VERSION_MINOR }}'
+          AE_VERSION_PATCH: '${{ steps.get-metadata.outputs.VERSION_PATCH }}'
+          AE_VERSION_PRERELEASE: '${{ steps.get-metadata.outputs.VERSION_PRERELEASE }}'
+          AE_BUILD_METADATA: '${{ steps.get-metadata.outputs.BUILD_METADATA }}'
         with:
           script: |
-            const versionMajor = '${{ steps.get-metadata.outputs.VERSION_MAJOR }}';
-            const versionMinor = '${{ steps.get-metadata.outputs.VERSION_MINOR }}';
-            const versionPatch = '${{ steps.get-metadata.outputs.VERSION_PATCH }}';
-            const versionPreRelease = '${{ steps.get-metadata.outputs.VERSION_PRERELEASE }}';
-            const buildMetadata = '${{ steps.get-metadata.outputs.BUILD_METADATA }}';
-            
-            const core = `${versionMajor}.${versionMinor}.${versionPatch}`;
-            const isPreRelease = '' !== versionPreRelease;
-            const hasBuildMetadata = '' !== buildMetadata;
-            
-            console.log(`Build Version: v${versionMajor}.${versionMinor}.${versionPatch}${isPreRelease ? '-' : ''}${versionPreRelease}${hasBuildMetadata ? '+' : ''}${buildMetadata}`);
-            
-            if (isPreRelease) {
-              console.log('Is PreRelease, only adding vM.m.p-P tag');
-            } else {
-              console.log('Not PrRelease, adding vM, vM.m, vM.m.p tags');
-            }
+            const {
+              AE_VERSION_MAJOR: versionMajor,
+              AE_VERSION_MINOR: versionMinor,
+              AE_VERSION_PATCH: versionPatch,
+              AE_VERSION_PRERELEASE: versionPreRelease,
+              AE_BUILD_METADATA: buildMetadata,
+            } = process.env;
+
+            console.log('*********');
+            console.log('Context');
+            console.log('*********');
+
+            console.log(context);

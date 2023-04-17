@@ -1,4 +1,4 @@
-package prettieraction
+package main
 
 import (
 	"bytes"
@@ -20,8 +20,8 @@ func TestLoadActionInput(t *testing.T) {
 		githubactions.WithWriter(actionLogOutput),
 	)
 
-	got := LoadActionInput(action)
-	want := ActionInput{
+	got := loadActionInput(action)
+	want := actionInput{
 		Name: "AJ",
 	}
 

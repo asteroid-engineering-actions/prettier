@@ -8,8 +8,7 @@ import (
 
 	"github.com/sethvargo/go-githubactions"
 
-	"github.com/asteroid-engineering-actions/prettier/prettieraction"
-	"github.com/asteroid-engineering-actions/prettier/version"
+	"github.com/asteroid-engineering-actions/prettier/go_action/version"
 )
 
 func main() {
@@ -23,7 +22,21 @@ func main() {
 
 	action := githubactions.New()
 
-	actionInputs := prettieraction.LoadActionInput(action)
+	actionInputs := loadActionInput(action)
 
-	prettieraction.Hello(os.Stdout, actionInputs.Name)
+	hello(os.Stdout, actionInputs.Name)
+}
+
+func start(handler handlerFunc) {
+	aEvent := &actionEvent{
+		getEnv: os.Getenv,
+	}
+
+	exitCode, err := handler(aEvent)
+
+	if err != nil {
+		os.Exit(1)
+	}
+
+	os.Exit(exitCode)
 }

@@ -32,13 +32,13 @@ jobs:
           go-version: '1.20.2'
       - run: |
           go test -v ./...
-        working-directory: ./
+        working-directory: ./go_action
         name: Test Action
       - run: |
           set -euo pipefail
           IFS=$'\n\t'
           
-          LDFLAGS="-X 'github.com/asteroid-engineering-actions/prettier/version.BuildMetadata=${{ github.run_id }}.${{ github.run_attempt }}'"
+          LDFLAGS="-X 'github.com/asteroid-engineering-actions/prettier/go_action/version.BuildMetadata=${{ github.run_id }}.${{ github.run_attempt }}'"
           platforms=("windows/amd64" "windows/386" "darwin/amd64" "darwin/arm64" "linux/amd64" "linux/arm64")
           
           build_go() {
@@ -51,7 +51,7 @@ jobs:
             
             echo "Building binary $output 🚧"
             
-            env GOOS=${platform_split[0]} GOARCH=${platform_split[1]} go build -trimpath -ldflags="$LDFLAGS" -o dist/$output main.go
+            env GOOS=${platform_split[0]} GOARCH=${platform_split[1]} go build -trimpath -ldflags="$LDFLAGS" -o ../dist/$output main.go
             
             echo "Finished building $output ✅"
           }
@@ -67,14 +67,14 @@ jobs:
           
           wait
           
-          cd dist
+          cd ../dist
           
-          find . -exec touch -t `git ls-files -z ../**/*.go | \
+          find . -exec touch -t `git ls-files -z ../go_action/**/*.go | \
           xargs -0 -n1 -I{} -- git log -1 --date=format:"%Y%m%d%H%M" --format="%ad" {} | \
           sort -r | head -n 1` {} +
           
           cd -
-        working-directory: ./
+        working-directory: ./go_action
         name: Build Go Binaries
       - name: Commit Build Outputs
         if: github.event_name == 'pull_request'
