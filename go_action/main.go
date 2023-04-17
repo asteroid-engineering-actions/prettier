@@ -27,16 +27,16 @@ func main() {
 	hello(os.Stdout, actionInputs.Name)
 }
 
-func start(handler handlerFunc) {
-	aEvent := &actionEvent{
-		getEnv: os.Getenv,
-	}
-
-	exitCode, err := handler(aEvent)
-
-	if err != nil {
-		os.Exit(1)
-	}
-
-	os.Exit(exitCode)
-}
+//func start(handler handlerFunc) {
+//	aEvent := &actionEvent{
+//		getEnv: os.Getenv,
+//	}
+//
+//	exitCode, err := handler(aEvent)
+//
+//	if err != nil {
+//		os.Exit(1)
+//	}
+//
+//	os.Exit(exitCode)
+//}

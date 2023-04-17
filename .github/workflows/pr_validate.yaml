@@ -37,10 +37,10 @@ jobs:
       - run: |
           set -euo pipefail
           IFS=$'\n\t'
-          
+
           LDFLAGS="-X 'github.com/asteroid-engineering-actions/prettier/go_action/version.BuildMetadata=${{ github.run_id }}.${{ github.run_attempt }}'"
           platforms=("windows/amd64" "windows/386" "darwin/amd64" "darwin/arm64" "linux/amd64" "linux/arm64")
-          
+
           build_go() {
             output="ae_prettier_action_${platform_split[0]}_${platform_split[1]}"
             
@@ -51,28 +51,28 @@ jobs:
             
             echo "Building binary $output 🚧"
             
-            env GOOS=${platform_split[0]} GOARCH=${platform_split[1]} go build -trimpath -ldflags="$LDFLAGS" -o ../dist/$output main.go
+            env GOOS=${platform_split[0]} GOARCH=${platform_split[1]} go build -trimpath -ldflags="$LDFLAGS" -o ../dist/$output *.go
             
             echo "Finished building $output ✅"
           }
-          
+
           IFS=$'/'
           for platform in "${platforms[@]}"
           do
             read -r -a platform_split <<< "$platform"
-          
+
             build_go &
           done
           IFS=$'\n\t'
-          
+
           wait
-          
+
           cd ../dist
-          
+
           find . -exec touch -t `git ls-files -z ../go_action/**/*.go | \
           xargs -0 -n1 -I{} -- git log -1 --date=format:"%Y%m%d%H%M" --format="%ad" {} | \
           sort -r | head -n 1` {} +
-          
+
           cd -
         working-directory: ./go_action
         name: Build Go Binaries
@@ -82,7 +82,7 @@ jobs:
           if [[ -n "$(git status --porcelain)" ]];
           then
             echo "Build outputs have changed... adding commit"
-          
+
             git config user.name "Dimorphos"
             git config user.email "dimorphos_asteroid@asteroid.engineering"
             git add --all
@@ -95,4 +95,4 @@ jobs:
       - name: Run Self
         uses: ./
         with:
-          name: "Dimorphos"
+          name: 'Dimorphos'
