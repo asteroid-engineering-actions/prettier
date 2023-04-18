@@ -81,8 +81,44 @@ jobs:
               AE_BUILD_METADATA: buildMetadata,
             } = process.env;
 
-            console.log('*********');
-            console.log('Context');
-            console.log('*********');
+            const rtrn = {};
+
+            rtrn.coreSemVer = `v${versionMajor}.${versionMinor}.${versionPatch}`;
+            rtrn.isPreRelease = '' !== versionPreRelease;
+            rtrn.hasBuildMetadata = '' !== buildMetadata;
+            rtrn.fullVersion = `${versionMajor}.${versionMinor}.${versionPatch}${isPreRelease ? '-' : ''}${versionPreRelease}${hasBuildMetadata ? '+' : ''}${buildMetadata}`
+
+            console.log(`Build Version: v${rtrn.fullVersion}`);
 
             console.log(context);
+
+            rtrn.currentRefs = {};
+
+            console.log(rtrn.currentRefs);
+
+            if (isPreRelease) {
+              console.log('Is PreRelease, only adding vM.m.p-P tag');
+              return JSON.stringify(rtrn);
+            }
+
+            console.log('Not PrRelease, adding vM, vM.m, vM.m.p tags');
+
+            rtrn.coreSemVerRef = `tags/${coreSemVer}`;
+            rtrn.currentRefs.coreSemVer = await getCurrentRef(rtrn.coreSemVerRef);
+
+            console.log(JSON.stringify(rtrn, null, 2);
+
+            async function getCurrentRef(ref) {
+              for await (const refs of github.paginate.iterator(github.rest.git.listMatchingRefs, {
+                ...context.repo(),
+                ref,
+              })) {
+                const githubRefs = refs.filter((r) => r.ref === rtrn.majorMinorVerRef);
+
+                if (githubRefs.length > 0) {
+                  return ref;
+                }
+              }
+
+              return undefined;
+            }
