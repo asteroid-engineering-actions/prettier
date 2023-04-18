@@ -86,7 +86,7 @@ jobs:
             rtrn.coreSemVer = `v${versionMajor}.${versionMinor}.${versionPatch}`;
             rtrn.isPreRelease = '' !== versionPreRelease;
             rtrn.hasBuildMetadata = '' !== buildMetadata;
-            rtrn.fullVersion = `${versionMajor}.${versionMinor}.${versionPatch}${isPreRelease ? '-' : ''}${versionPreRelease}${hasBuildMetadata ? '+' : ''}${buildMetadata}`
+            rtrn.fullVersion = `${versionMajor}.${versionMinor}.${versionPatch}${rtrn.isPreRelease ? '-' : ''}${versionPreRelease}${rtrn.hasBuildMetadata ? '+' : ''}${buildMetadata}`
 
             console.log(`Build Version: v${rtrn.fullVersion}`);
 
