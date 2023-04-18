@@ -113,10 +113,14 @@ jobs:
                 ...context.repo,
                 ref,
               })) {
-                const githubRefs = refs.filter((r) => r.ref === rtrn.majorMinorVerRef);
+                console.log(refs);
 
-                if (githubRefs.length > 0) {
-                  return ref;
+                if (Array.isArray(refs)) {
+                  const githubRefs = refs.filter((r) => r.ref === rtrn.majorMinorVerRef);
+
+                  if (githubRefs.length > 0) {
+                    return ref;
+                  }
                 }
               }
 
