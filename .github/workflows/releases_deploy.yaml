@@ -106,7 +106,7 @@ jobs:
             rtrn.coreSemVerRef = `tags/${coreSemVer}`;
             rtrn.currentRefs.coreSemVer = await getCurrentRef(rtrn.coreSemVerRef);
 
-            console.log(JSON.stringify(rtrn, null, 2);
+            console.log(JSON.stringify(rtrn, null, 2));
 
             async function getCurrentRef(ref) {
               for await (const refs of github.paginate.iterator(github.rest.git.listMatchingRefs, {
