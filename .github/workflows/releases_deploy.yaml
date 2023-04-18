@@ -110,7 +110,7 @@ jobs:
 
             async function getCurrentRef(ref) {
               for await (const refs of github.paginate.iterator(github.rest.git.listMatchingRefs, {
-                ...context.repo(),
+                ...context.repo,
                 ref,
               })) {
                 const githubRefs = refs.filter((r) => r.ref === rtrn.majorMinorVerRef);
