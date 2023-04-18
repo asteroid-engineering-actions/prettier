@@ -89,7 +89,7 @@ jobs:
             rtrn.fullVersion = `${versionMajor}.${versionMinor}.${versionPatch}${rtrn.isPreRelease ? '-' : ''}${versionPreRelease}${rtrn.hasBuildMetadata ? '+' : ''}${buildMetadata}`
 
             console.log(`Build Version: v${rtrn.fullVersion}`);
-\
+
             rtrn.currentRefs = {};
 
             if (rtrn.isPreRelease) {
