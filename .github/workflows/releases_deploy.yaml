@@ -89,12 +89,8 @@ jobs:
             rtrn.fullVersion = `${versionMajor}.${versionMinor}.${versionPatch}${rtrn.isPreRelease ? '-' : ''}${versionPreRelease}${rtrn.hasBuildMetadata ? '+' : ''}${buildMetadata}`
 
             console.log(`Build Version: v${rtrn.fullVersion}`);
-
-            console.log(context);
-
+\
             rtrn.currentRefs = {};
-
-            console.log(rtrn.currentRefs);
 
             if (rtrn.isPreRelease) {
               console.log('Is PreRelease, only adding vM.m.p-P tag');
@@ -106,6 +102,10 @@ jobs:
             rtrn.coreSemVerRef = `tags/${rtrn.coreSemVer}`;
             rtrn.currentRefs.coreSemVer = await getCurrentRef(rtrn.coreSemVerRef);
 
+            console.log('############################################');
+            console.log('# Script Result');
+            console.log('############################################');
+
             console.log(JSON.stringify(rtrn, null, 2));
 
             async function getCurrentRef(ref) {
@@ -113,14 +113,10 @@ jobs:
                 ...context.repo,
                 ref,
               })) {
-                console.log(refs);
+                const githubRefs = refs.data.filter((r) => r.ref === rtrn.majorMinorVerRef);
 
-                if (Array.isArray(refs)) {
-                  const githubRefs = refs.filter((r) => r.ref === rtrn.majorMinorVerRef);
-
-                  if (githubRefs.length > 0) {
-                    return ref;
-                  }
+                if (githubRefs.length > 0) {
+                  return ref;
                 }
               }
 
