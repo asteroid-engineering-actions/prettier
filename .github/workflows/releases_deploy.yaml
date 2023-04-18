@@ -96,7 +96,7 @@ jobs:
 
             console.log(rtrn.currentRefs);
 
-            if (isPreRelease) {
+            if (rtrn.isPreRelease) {
               console.log('Is PreRelease, only adding vM.m.p-P tag');
               return JSON.stringify(rtrn);
             }
