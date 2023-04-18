@@ -103,7 +103,7 @@ jobs:
 
             console.log('Not PrRelease, adding vM, vM.m, vM.m.p tags');
 
-            rtrn.coreSemVerRef = `tags/${coreSemVer}`;
+            rtrn.coreSemVerRef = `tags/${rtrn.coreSemVer}`;
             rtrn.currentRefs.coreSemVer = await getCurrentRef(rtrn.coreSemVerRef);
 
             console.log(JSON.stringify(rtrn, null, 2));
