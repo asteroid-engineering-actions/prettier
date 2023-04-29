@@ -147,11 +147,15 @@ jobs:
             console.log(JSON.stringify(rtrn, null, 2));
 
             async function getCurrentRef(refString) {
+              console.log(`Input refString ${refString}`);
+
               for await (const refs of github.paginate.iterator(github.rest.git.listMatchingRefs, {
                 ...context.repo,
                 ref: refString,
               })) {
+                console.log(refs.data);
                 const githubRefs = refs.data.filter((r) => r.ref === refString);
+                console.log(githubRefs);
 
                 if (githubRefs.length > 0) {
                   return githubRefs[0];
