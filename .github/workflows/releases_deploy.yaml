@@ -154,7 +154,7 @@ jobs:
                 ref: refString,
               })) {
                 console.log(refs.data);
-                const githubRefs = refs.data.filter((r) => r.ref === refString);
+                const githubRefs = refs.data.filter((r) => r.ref === `refs/${refString}`);
                 console.log(githubRefs);
 
                 if (githubRefs.length > 0) {
