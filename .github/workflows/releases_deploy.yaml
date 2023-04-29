@@ -83,24 +83,57 @@ jobs:
 
             const rtrn = {};
 
-            rtrn.coreSemVer = `v${versionMajor}.${versionMinor}.${versionPatch}`;
             rtrn.isPreRelease = '' !== versionPreRelease;
             rtrn.hasBuildMetadata = '' !== buildMetadata;
-            rtrn.fullVersion = `${versionMajor}.${versionMinor}.${versionPatch}${rtrn.isPreRelease ? '-' : ''}${versionPreRelease}${rtrn.hasBuildMetadata ? '+' : ''}${buildMetadata}`
+            rtrn.version = `${versionMajor}.${versionMinor}.${versionPatch}${rtrn.isPreRelease ? '-' : ''}${versionPreRelease}${rtrn.hasBuildMetadata ? '+' : ''}${buildMetadata}`;
+            rtrn.semanticVersion = {
+              major: versionMajor,
+              minor: versionMinor,
+              patch: versionPatch,
+              preRelease: versionPreRelease,
+              buildMetadata,
+            };
 
-            console.log(`Build Version: v${rtrn.fullVersion}`);
-
-            rtrn.currentRefs = {};
+            console.log('############################################');
+            console.log(`# Build Version: v${rtrn.version}`);
+            console.log('############################################');
 
             if (rtrn.isPreRelease) {
-              console.log('Is PreRelease, only adding vM.m.p-P tag');
+              console.log('############################################');
+              console.log('# Is PreRelease, only adding vM.m.p-P tag');
+              console.log('############################################');
               return JSON.stringify(rtrn);
             }
 
-            console.log('Not PrRelease, adding vM, vM.m, vM.m.p tags');
+            console.log('############################################');
+            console.log('# Not PrRelease, adding vM, vM.m, vM.m.p tags');
+            console.log('############################################');
 
-            rtrn.coreSemVerRef = `tags/${rtrn.coreSemVer}`;
+            rtrn.versionGitRefs = [
+              {
+                name: 'Full Semantic Version Tag',
+                refString: `tags/v${rtrn.version}`,
+                currentGithubRef: undefined,
+              },
+              {
+                name: 'Major, Minor, Patch Tag',
+                refString: `tags/v${rtrn.semanticVersion.major}.${rtrn.semanticVersion.minor}.${rtrn.semanticVersion.patch}`,
+                currentGithubRef: undefined,
+              }
+            ];
+            rtrn.majorMinorVerRef = `tags/v${versionMajor}.${versionMinor}`;
+            rtrn.majorVerRef = `tags/v${versionMajor}`;
+
+
+
+
             rtrn.currentRefs.coreSemVer = await getCurrentRef(rtrn.coreSemVerRef);
+            rtrn.currentRefs.majorMinorVer = await getCurrentRef(rtrn.majorMinorVerRef);
+            rtrn.currentRefs.majorVer = await getCurrentRef(rtrn.majorVerRef);
+
+            for (const githubRef of Object.values(rtrn.currentRefs)) {
+              
+            }
 
             console.log('############################################');
             console.log('# Script Result');
@@ -122,3 +155,5 @@ jobs:
 
               return undefined;
             }
+
+            async
