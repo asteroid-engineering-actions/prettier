@@ -119,21 +119,24 @@ jobs:
                 name: 'Major, Minor, Patch Tag',
                 refString: `tags/v${rtrn.semanticVersion.major}.${rtrn.semanticVersion.minor}.${rtrn.semanticVersion.patch}`,
                 currentGithubRef: undefined,
+              },
+              {
+                name: 'Major, Minor Tag',
+                refString: `tags/v${rtrn.semanticVersion.major}.${rtrn.semanticVersion.minor}`,
+                currentGithubRef: undefined,
+              },
+              {
+                name: 'Major Tag',
+                refString: `tags/v${rtrn.semanticVersion.major}`,
+                currentGithubRef: undefined,
               }
             ];
-            rtrn.majorMinorVerRef = `tags/v${versionMajor}.${versionMinor}`;
-            rtrn.majorVerRef = `tags/v${versionMajor}`;
 
-
-
-            rtrn.currentRefs = {};
-            rtrn.currentRefs.coreSemVer = await getCurrentRef(rtrn.coreSemVerRef);
-            rtrn.currentRefs.majorMinorVer = await getCurrentRef(rtrn.majorMinorVerRef);
-            rtrn.currentRefs.majorVer = await getCurrentRef(rtrn.majorVerRef);
-
-            for (const githubRef of Object.values(rtrn.currentRefs)) {
-              
+            for (const versionGitRef of rtrn.versionGitRefs) {
+              versionGitRef.currentGithubRef = await getCurrentRef(versionGitRef.refString);
             }
+
+
 
             console.log('############################################');
             console.log('# Script Result');
@@ -155,5 +158,3 @@ jobs:
 
               return undefined;
             }
-
-            async
