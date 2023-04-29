@@ -135,10 +135,31 @@ jobs:
             for (const versionGitRef of rtrn.versionGitRefs) {
               versionGitRef.currentGithubRef = await getCurrentRef(versionGitRef.refString);
 
+              if (versionGitRef.currentGithubRef) {
+                if (versionGitRef.currentGithubRef.object.sha !== context.sha) {
+                  console.log(`Updating refs/${versionGitRef.refString}`);
+
+                  const updateCurrentRef = await github.rest.git.updateRef({
+                    ...context.repo,
+                    ref: versionGitRef.currentGithubRef.ref,
+                    sha: context.sha,
+                  });
+
+                  versionGitRef.newGithubRef = updateCurrentRef.data;
+                } else {
+                  console.log(`No update to refs/${versionGitRef.refString} needed`);
+                }
+              } else {
+                console.log(`Creating refs/${versionGitRef.refString}`);
+                versionGitRef.newGithubRef = await github.rest.git.createRef({
+                  ...context.repo,
+                  ref: `refs/${versionGitRef.refString}`,
+                  sha: context.sha,
+                });
+              }
+
               console.log(versionGitRef);
             }
-
-
 
             console.log('############################################');
             console.log('# Script Result');
