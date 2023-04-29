@@ -146,15 +146,15 @@ jobs:
 
             console.log(JSON.stringify(rtrn, null, 2));
 
-            async function getCurrentRef(ref) {
+            async function getCurrentRef(refString) {
               for await (const refs of github.paginate.iterator(github.rest.git.listMatchingRefs, {
                 ...context.repo,
-                ref,
+                ref: refString,
               })) {
-                const githubRefs = refs.data.filter((r) => r.ref === rtrn.majorMinorVerRef);
+                const githubRefs = refs.data.filter((r) => r.ref === refString);
 
                 if (githubRefs.length > 0) {
-                  return ref;
+                  return githubRefs[0];
                 }
               }
 
