@@ -134,6 +134,8 @@ jobs:
 
             for (const versionGitRef of rtrn.versionGitRefs) {
               versionGitRef.currentGithubRef = await getCurrentRef(versionGitRef.refString);
+
+              console.log(versionGitRef);
             }
 
 
