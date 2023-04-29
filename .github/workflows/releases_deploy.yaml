@@ -126,7 +126,7 @@ jobs:
 
 
 
-
+            rtrn.currentRefs = {};
             rtrn.currentRefs.coreSemVer = await getCurrentRef(rtrn.coreSemVerRef);
             rtrn.currentRefs.majorMinorVer = await getCurrentRef(rtrn.majorMinorVerRef);
             rtrn.currentRefs.majorVer = await getCurrentRef(rtrn.majorVerRef);
