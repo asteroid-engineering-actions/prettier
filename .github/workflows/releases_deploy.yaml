@@ -133,35 +133,32 @@ jobs:
             ];
 
             for (const versionGitRef of rtrn.versionGitRefs) {
+              console.log('############################################');
+              console.log(`# Process ${versionGitRef.refString}`);
+              console.log('############################################');
+
               versionGitRef.currentGithubRef = await getCurrentRef(versionGitRef.refString);
+              console.log();
+              console.log(JSON.stringify(versionGitRef.currentGithubRef));
+              console.log();
 
               if (versionGitRef.currentGithubRef) {
+                console.log();
                 console.log('############################################');
-                console.log(`Current Github Ref: \n${JSON.stringify(versionGitRef.currentGithubRef)}`);
+                console.log('# currentGithubRef Exists');
                 console.log('############################################');
+                console.log();
 
                 if (versionGitRef.currentGithubRef.object.sha !== context.sha) {
                   console.log(`Updating ${versionGitRef.currentGithubRef.ref}`);
-
-                  const updateCurrentRef = await github.rest.git.updateRef({
-                    ...context.repo,
-                    ref: versionGitRef.currentGithubRef.ref,
-                    sha: context.sha,
-                  });
-
-                  versionGitRef.newGithubRef = updateCurrentRef.data;
+                  console.log();
                 } else {
                   console.log(`No update to refs/${versionGitRef.refString} needed`);
+                  console.log();
                 }
               } else {
                 console.log(`Creating refs/${versionGitRef.refString}`);
-                const createRef = await github.rest.git.createRef({
-                  ...context.repo,
-                  ref: `refs/${versionGitRef.refString}`,
-                  sha: context.sha,
-                });
-
-                versionGitRef.newGithubRef = createRef.data;
+                console.log();
               }
             }
 
