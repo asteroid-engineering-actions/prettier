@@ -136,8 +136,12 @@ jobs:
               versionGitRef.currentGithubRef = await getCurrentRef(versionGitRef.refString);
 
               if (versionGitRef.currentGithubRef) {
+                console.log('############################################');
+                console.log(`Current Github Ref: \n${JSON.stringify(versionGitRef.currentGithubRef)}`);
+                console.log('############################################');
+
                 if (versionGitRef.currentGithubRef.object.sha !== context.sha) {
-                  console.log(`Updating refs/${versionGitRef.refString}`);
+                  console.log(`Updating ${versionGitRef.currentGithubRef.ref}`);
 
                   const updateCurrentRef = await github.rest.git.updateRef({
                     ...context.repo,
@@ -151,14 +155,14 @@ jobs:
                 }
               } else {
                 console.log(`Creating refs/${versionGitRef.refString}`);
-                versionGitRef.newGithubRef = await github.rest.git.createRef({
+                const createRef = await github.rest.git.createRef({
                   ...context.repo,
                   ref: `refs/${versionGitRef.refString}`,
                   sha: context.sha,
                 });
-              }
 
-              console.log(versionGitRef);
+                versionGitRef.newGithubRef = createRef.data;
+              }
             }
 
             console.log('############################################');
@@ -168,15 +172,11 @@ jobs:
             console.log(JSON.stringify(rtrn, null, 2));
 
             async function getCurrentRef(refString) {
-              console.log(`Input refString ${refString}`);
-
               for await (const refs of github.paginate.iterator(github.rest.git.listMatchingRefs, {
                 ...context.repo,
                 ref: refString,
               })) {
-                console.log(refs.data);
                 const githubRefs = refs.data.filter((r) => r.ref === `refs/${refString}`);
-                console.log(githubRefs);
 
                 if (githubRefs.length > 0) {
                   return githubRefs[0];
