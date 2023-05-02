@@ -157,6 +157,7 @@ jobs:
                     ...context.repo,
                     ref: versionGitRef.currentGithubRef.ref,
                     sha: context.sha,
+                    force: true,
                   });
 
                   versionGitRef.newGithubRef = updateGithubRef.data;
