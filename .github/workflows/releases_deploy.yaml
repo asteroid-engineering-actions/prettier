@@ -151,14 +151,29 @@ jobs:
 
                 if (versionGitRef.currentGithubRef.object.sha !== context.sha) {
                   console.log(`Updating ${versionGitRef.currentGithubRef.ref}`);
-                  console.log();
+                  console.log(`# owner: ${context.repo.owner}\n# repo: ${context.repo.repo}\n# ref: ${versionGitRef.currentGithubRef.ref}\n# New sha: ${context.sha}\n# Old sha: ${versionGitRef.currentGithubRef.object.sha}`);
+
+                  const updateGithubRef = await github.rest.git.updateRef({
+                    ...context.repo,
+                    ref: versionGitRef.currentGithubRef.ref,
+                    sha: context.sha,
+                  });
+
+                  versionGitRef.newGithubRef = updateGithubRef.data;
                 } else {
                   console.log(`No update to refs/${versionGitRef.refString} needed`);
-                  console.log();
                 }
               } else {
                 console.log(`Creating refs/${versionGitRef.refString}`);
-                console.log();
+                console.log(`# owner: ${context.repo.owner}\n# repo: ${context.repo.repo}\n# ref: refs/${versionGitRef.refString}\n# sha: ${context.sha}`);
+
+                const createGithubRef = await github.rest.git.createRef({
+                  ...context.repo,
+                  ref: `refs/${versionGitRef.refString}`,
+                  sha: context.sha,
+                });
+                
+                versionGitRef.newGithubRef = createGithubRef.data;
               }
             }
 
