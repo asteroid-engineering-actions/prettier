@@ -85,7 +85,9 @@ jobs:
 
             rtrn.isPreRelease = '' !== versionPreRelease;
             rtrn.hasBuildMetadata = '' !== buildMetadata;
+
             rtrn.version = `${versionMajor}.${versionMinor}.${versionPatch}${rtrn.isPreRelease ? '-' : ''}${versionPreRelease}${rtrn.hasBuildMetadata ? '+' : ''}${buildMetadata}`;
+
             rtrn.semanticVersion = {
               major: versionMajor,
               minor: versionMinor,
@@ -94,95 +96,105 @@ jobs:
               buildMetadata,
             };
 
-            console.log('############################################');
-            console.log(`# Build Version: v${rtrn.version}`);
-            console.log('############################################');
+            console.log(`Build Version: v${rtrn.version}`);
 
             if (rtrn.isPreRelease) {
-              console.log('############################################');
-              console.log('# Is PreRelease, only adding vM.m.p-P tag');
-              console.log('############################################');
-              return JSON.stringify(rtrn);
+              console.log('Is PrRelease, adding full semantic version tags');
+              rtrn.versionGitRefs = [
+                {
+                  name: 'Full Semantic Version Tag',
+                  refString: `tags/v${rtrn.version}`,
+                  currentGithubRef: undefined,
+                },
+              ];
+            } else {
+              console.log('Not PrRelease, adding vM, vM.m, vM.m.p, and full semantic version tags');
+              rtrn.versionGitRefs = [
+                {
+                  name: 'Full Semantic Version Tag',
+                  refString: `tags/v${rtrn.version}`,
+                  currentGithubRef: undefined,
+                },
+                {
+                  name: 'Major, Minor, Patch Tag',
+                  refString: `tags/v${rtrn.semanticVersion.major}.${rtrn.semanticVersion.minor}.${rtrn.semanticVersion.patch}`,
+                  currentGithubRef: undefined,
+                },
+                {
+                  name: 'Major, Minor Tag',
+                  refString: `tags/v${rtrn.semanticVersion.major}.${rtrn.semanticVersion.minor}`,
+                  currentGithubRef: undefined,
+                },
+                {
+                  name: 'Major Tag',
+                  refString: `tags/v${rtrn.semanticVersion.major}`,
+                  currentGithubRef: undefined,
+                },
+              ];
             }
 
-            console.log('############################################');
-            console.log('# Not PrRelease, adding vM, vM.m, vM.m.p tags');
-            console.log('############################################');
-
-            rtrn.versionGitRefs = [
-              {
-                name: 'Full Semantic Version Tag',
-                refString: `tags/v${rtrn.version}`,
-                currentGithubRef: undefined,
-              },
-              {
-                name: 'Major, Minor, Patch Tag',
-                refString: `tags/v${rtrn.semanticVersion.major}.${rtrn.semanticVersion.minor}.${rtrn.semanticVersion.patch}`,
-                currentGithubRef: undefined,
-              },
-              {
-                name: 'Major, Minor Tag',
-                refString: `tags/v${rtrn.semanticVersion.major}.${rtrn.semanticVersion.minor}`,
-                currentGithubRef: undefined,
-              },
-              {
-                name: 'Major Tag',
-                refString: `tags/v${rtrn.semanticVersion.major}`,
-                currentGithubRef: undefined,
-              }
-            ];
-
             for (const versionGitRef of rtrn.versionGitRefs) {
-              console.log('############################################');
-              console.log(`# Process ${versionGitRef.refString}`);
-              console.log('############################################');
-
+              console.group(`# Process ${versionGitRef.refString}`);
+              
               versionGitRef.currentGithubRef = await getCurrentRef(versionGitRef.refString);
-              console.log();
-              console.log(JSON.stringify(versionGitRef.currentGithubRef));
-              console.log();
-
+              
               if (versionGitRef.currentGithubRef) {
-                console.log();
-                console.log('############################################');
-                console.log('# currentGithubRef Exists');
-                console.log('############################################');
-                console.log();
-
+                console.log(`${versionGitRef.currentGithubRef.ref} found at commit sha: ${versionGitRef.currentGithubRef.object.sha}`);
+              
                 if (versionGitRef.currentGithubRef.object.sha !== context.sha) {
-                  console.log(`Updating ${versionGitRef.currentGithubRef.ref}`);
-                  console.log(`# owner: ${context.repo.owner}\n# repo: ${context.repo.repo}\n# ref: ${versionGitRef.currentGithubRef.ref}\n# New sha: ${context.sha}\n# Old sha: ${versionGitRef.currentGithubRef.object.sha}`);
-
-                  const updateGithubRef = await github.rest.git.updateRef({
-                    ...context.repo,
-                    ref: versionGitRef.currentGithubRef.ref,
-                    sha: context.sha,
-                    force: true,
-                  });
-
+                  console.log(`Updating ${versionGitRef.currentGithubRef.ref} with current sha`);
+                  console.group('Ref Update Details');
+                  console.log(`Repo Owner: ${context.repo.owner}`);
+                  console.log(`Repo: ${context.repo.repo}`);
+                  console.log(`Ref: ${versionGitRef.currentGithubRef.ref}`);
+                  console.log(`Old Commit sha: ${versionGitRef.currentGithubRef.object.sha}`);
+                  console.log(`New Commit sha: ${context.sha}`);
+                  console.groupEnd();
+                
+                  try {
+                    const updateGithubRef = await github.rest.git.updateRef({
+                      ...context.repo,
+                      ref: versionGitRef.refString,
+                      sha: context.sha,
+                      force: true,
+                    });
+              
                   versionGitRef.newGithubRef = updateGithubRef.data;
+                  } catch (e) {
+                    console.group(`🚨Error Updating Ref: ${versionGitRef.currentGithubRef.ref}🚨`);
+                    console.log(e);
+                    console.groupEnd();
+                  }
                 } else {
                   console.log(`No update to refs/${versionGitRef.refString} needed`);
                 }
               } else {
                 console.log(`Creating refs/${versionGitRef.refString}`);
-                console.log(`# owner: ${context.repo.owner}\n# repo: ${context.repo.repo}\n# ref: refs/${versionGitRef.refString}\n# sha: ${context.sha}`);
-
-                const createGithubRef = await github.rest.git.createRef({
-                  ...context.repo,
-                  ref: `refs/${versionGitRef.refString}`,
-                  sha: context.sha,
-                });
-                
-                versionGitRef.newGithubRef = createGithubRef.data;
+                console.group('Ref Update Details');
+                console.log(`Repo Owner: ${context.repo.owner}`);
+                console.log(`Repo: ${context.repo.repo}`);
+                console.log(`Ref: refs/${versionGitRef.refString}`);
+                console.log(`Commit sha: ${context.sha}`);
+                console.groupEnd();
+              
+                try {
+                  const createGithubRef = await github.rest.git.createRef({
+                    ...context.repo,
+                    ref: `refs/${versionGitRef.refString}`,
+                    sha: context.sha,
+                  });
+              
+                  versionGitRef.newGithubRef = createGithubRef.data;
+                } catch (e) {
+                  console.group(`🚨Error Creating Ref: ${versionGitRef.currentGithubRef.ref}🚨`);
+                  console.log(e);
+                  console.groupEnd();
+                }
               }
+                console.groupEnd();
             }
 
-            console.log('############################################');
-            console.log('# Script Result');
-            console.log('############################################');
-
-            console.log(JSON.stringify(rtrn, null, 2));
+            return JSON.stringify(rtrn);
 
             async function getCurrentRef(refString) {
               for await (const refs of github.paginate.iterator(github.rest.git.listMatchingRefs, {
