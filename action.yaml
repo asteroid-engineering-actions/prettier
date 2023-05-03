@@ -1,0 +1,10 @@
+name: Prettier
+description: 'Greet someone and record the time'
+runs:
+  using: 'node16'
+  main: 'goShim.js'
+inputs:
+  name:
+    description: "Your Name"
+    required: false
+    default: "SmartBot"

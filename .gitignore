@@ -1,0 +1,9 @@
+# Everything But...
+*
+
+!.gitignore
+!dist
+!action.yaml
+!goShim.js
+!LICENSE
+!README.md
