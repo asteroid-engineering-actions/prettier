@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:
 jobs:
   build_push_docker:
     name: Publish Release
@@ -13,7 +12,245 @@ jobs:
       packages: write
     steps:
       - name: Get PR Number for Commit
+        id: get-pr-number
         uses: actions/github-script@v6
         with:
           script: |
-            console.log(JSON.stringify(context.payload));
+            const rtrn = {};
+
+            rtrn.closedPrsForSha = await getClosedPrForSha(context.payload.after);
+
+            const githubRef = await github.rest.git.getRef({
+              ...context.repo,
+              ref: `tags/pr-${rtrn.closedPrsForSha.number}`,
+            });
+
+            rtrn.releasesCommitRef = githubRef.data;
+
+            core.setOutput('AE_PR_NUMBER', `${rtrn.closedPrsForSha.number}`);
+            core.setOutput('AE_RELEASES_COMMIT_SHA', `${rtrn.releasesCommitRef.object.sha}`);
+
+            return JSON.stringify(rtrn);
+
+            async function getClosedPrForSha(commit_sha) {
+              for await (const prs of github.paginate.iterator(github.rest.repos.listPullRequestsAssociatedWithCommit, {
+                ...context.repo,
+                commit_sha: commit_sha,
+              })) {
+                const closedPrs = prs.data.filter((pr) => {
+                  return pr.state === 'closed';
+                });
+
+                if (closedPrs.length > 0) {
+                  return closedPrs[0];
+                }
+              }
+
+              return undefined;
+            }
+      - uses: actions/checkout@v3
+        with:
+          ref: pr-${{ steps.get-pr-number.outputs.AE_PR_NUMBER }}
+      - name: Get Action Version
+        id: get-metadata
+        run: |
+          VERSION=$(./dist/ae_prettier_action_linux_amd64 -version)
+
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          VERSION="${VERSION#[vV]}"
+
+          Mmp="${VERSION%+*}"
+          Mmp="${Mmp%-*}"
+
+          IFS=$'.'
+          read -r -a Mmp <<< "$Mmp"
+          IFS=$'\n\t'
+
+          VERSION_MAJOR="${Mmp[0]}"
+          VERSION_MINOR="${Mmp[1]:-x}"
+          VERSION_PATCH="${Mmp[2]:-x}"
+
+          VERSION_PRERELEASE="${VERSION#*-}"
+
+          if [[ "$VERSION" == "$VERSION_PRERELEASE" ]];
+          then
+              VERSION_PRERELEASE=""
+          else
+              VERSION_PRERELEASE="${VERSION_PRERELEASE%+*}"
+          fi
+
+          BUILD_METADATA="${VERSION#*+}"
+
+          if [[ "$BUILD_METADATA" == "$VERSION" ]];
+          then
+              BUILD_METADATA=""
+          fi
+
+          echo "Version Major: $VERSION_MAJOR"
+          echo "VERSION_MAJOR=$VERSION_MAJOR" >> $GITHUB_OUTPUT
+
+          echo "Version Minor: $VERSION_MINOR"
+          echo "VERSION_MINOR=$VERSION_MINOR" >> $GITHUB_OUTPUT
+
+          echo "Version Patch: $VERSION_PATCH"
+          echo "VERSION_PATCH=$VERSION_PATCH" >> $GITHUB_OUTPUT
+
+          echo "Version PreRelease: $VERSION_PRERELEASE"
+          echo "VERSION_PRERELEASE=$VERSION_PRERELEASE" >> $GITHUB_OUTPUT
+
+          echo "Build Metadata: $BUILD_METADATA"
+          echo "BUILD_METADATA=$BUILD_METADATA" >> $GITHUB_OUTPUT
+      - name: Add and Update Git Tags
+        id: add-update-tags
+        uses: actions/github-script@v6
+        env:
+          AE_VERSION_MAJOR: '${{ steps.get-metadata.outputs.VERSION_MAJOR }}'
+          AE_VERSION_MINOR: '${{ steps.get-metadata.outputs.VERSION_MINOR }}'
+          AE_VERSION_PATCH: '${{ steps.get-metadata.outputs.VERSION_PATCH }}'
+          AE_VERSION_PRERELEASE: '${{ steps.get-metadata.outputs.VERSION_PRERELEASE }}'
+          AE_BUILD_METADATA: '${{ steps.get-metadata.outputs.BUILD_METADATA }}'
+          AE_RELEASE_SHA: '${{ steps.get-pr-number.outputs.AE_RELEASES_COMMIT_SHA }}'
+        with:
+          script: |
+            const {
+              AE_VERSION_MAJOR: versionMajor,
+              AE_VERSION_MINOR: versionMinor,
+              AE_VERSION_PATCH: versionPatch,
+              AE_VERSION_PRERELEASE: versionPreRelease,
+              AE_BUILD_METADATA: buildMetadata,
+              AE_RELEASE_SHA: releasesCommitSha,
+            } = process.env;
+            
+            if (releasesCommitSha === '' || releasesCommitSha === undefined) {
+              throw new Error('AE_RELEASE_SHA environment variable must be set');
+            }
+
+            const rtrn = {};
+
+            rtrn.isPreRelease = '' !== versionPreRelease;
+            rtrn.hasBuildMetadata = '' !== buildMetadata;
+
+            rtrn.version = `${versionMajor}.${versionMinor}.${versionPatch}${rtrn.isPreRelease ? '-' : ''}${versionPreRelease}${rtrn.hasBuildMetadata ? '+' : ''}${buildMetadata}`;
+
+            rtrn.semanticVersion = {
+              major: versionMajor,
+              minor: versionMinor,
+              patch: versionPatch,
+              preRelease: versionPreRelease,
+              buildMetadata,
+            };
+
+            console.log(`Build Version: v${rtrn.version}`);
+
+            if (rtrn.isPreRelease) {
+              console.log('Is PrRelease, adding full semantic version tags');
+              rtrn.versionGitRefs = [
+                {
+                  name: 'Full Semantic Version Tag',
+                  refString: `tags/v${rtrn.version}`,
+                  currentGithubRef: undefined,
+                },
+              ];
+            } else {
+              console.log('Not PrRelease, adding vM, vM.m, vM.m.p, and full semantic version tags');
+              rtrn.versionGitRefs = [
+                {
+                  name: 'Full Semantic Version Tag',
+                  refString: `tags/v${rtrn.version}`,
+                  currentGithubRef: undefined,
+                },
+                {
+                  name: 'Major, Minor, Patch Tag',
+                  refString: `tags/v${rtrn.semanticVersion.major}.${rtrn.semanticVersion.minor}.${rtrn.semanticVersion.patch}`,
+                  currentGithubRef: undefined,
+                },
+                {
+                  name: 'Major, Minor Tag',
+                  refString: `tags/v${rtrn.semanticVersion.major}.${rtrn.semanticVersion.minor}`,
+                  currentGithubRef: undefined,
+                },
+                {
+                  name: 'Major Tag',
+                  refString: `tags/v${rtrn.semanticVersion.major}`,
+                  currentGithubRef: undefined,
+                },
+              ];
+            }
+
+            for (const versionGitRef of rtrn.versionGitRefs) {
+              console.group(`# Process ${versionGitRef.refString}`);
+            
+              versionGitRef.currentGithubRef = await getCurrentRef(versionGitRef.refString);
+            
+              if (versionGitRef.currentGithubRef) {
+                console.log(`${versionGitRef.currentGithubRef.ref} found at commit sha: ${versionGitRef.currentGithubRef.object.sha}`);
+            
+                if (versionGitRef.currentGithubRef.object.sha !== releasesCommitSha) {
+                  console.log(`Updating ${versionGitRef.currentGithubRef.ref} with current sha`);
+                  console.group('Ref Update Details');
+                  console.log(`Repo Owner: ${context.repo.owner}`);
+                  console.log(`Repo: ${context.repo.repo}`);
+                  console.log(`Ref: ${versionGitRef.currentGithubRef.ref}`);
+                  console.log(`Old Commit sha: ${versionGitRef.currentGithubRef.object.sha}`);
+                  console.log(`New Commit sha: ${releasesCommitSha}`);
+                  console.groupEnd();
+            
+                  try {
+                    const updateGithubRef = await github.rest.git.updateRef({
+                      ...context.repo,
+                      ref: versionGitRef.refString,
+                      sha: releasesCommitSha,
+                      force: true,
+                    });
+            
+                  versionGitRef.newGithubRef = updateGithubRef.data;
+                  } catch (e) {
+                    console.group(`🚨Error Updating Ref: ${versionGitRef.currentGithubRef.ref}🚨`);
+                    console.log(e);
+                    console.groupEnd();
+                  }
+                } else {
+                  console.log(`No update to refs/${versionGitRef.refString} needed`);
+                }
+              } else {
+                console.log(`Creating refs/${versionGitRef.refString}`);
+                console.group('Ref Update Details');
+                console.log(`Repo Owner: ${context.repo.owner}`);
+                console.log(`Repo: ${context.repo.repo}`);
+                console.log(`Ref: refs/${versionGitRef.refString}`);
+                console.log(`Commit sha: ${releasesCommitSha}`);
+                console.groupEnd();
+            
+                try {
+                  const createGithubRef = await github.rest.git.createRef({
+                    ...context.repo,
+                    ref: `refs/${versionGitRef.refString}`,
+                    sha: releasesCommitSha,
+                  });
+            
+                  versionGitRef.newGithubRef = createGithubRef.data;
+                } catch (e) {
+                  console.group(`🚨Error Creating Ref: ${versionGitRef.currentGithubRef.ref}🚨`);
+                  console.log(e);
+                  console.groupEnd();
+                }
+              }
+                console.groupEnd();
+            }
+
+            return JSON.stringify(rtrn);
+
+            async function getCurrentRef(refString) {
+              for await (const refs of github.paginate.iterator(github.rest.git.listMatchingRefs, {
+                ...context.repo,
+                ref: refString,
+              })) {
+                const githubRefs = refs.data.filter((r) => r.ref === `refs/${refString}`);
+
+                if (githubRefs.length > 0) {
+                  return githubRefs[0];
+                }
+              }
+
+              return undefined;
+            }
