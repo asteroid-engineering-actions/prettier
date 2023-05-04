@@ -37,4 +37,6 @@ function getBinary() {
 const binary = getBinary();
 const distPath = path.resolve(`.${path.sep}dist`);
 
+console.log(`Running go_action at ${distPath} with ${binary}`);
+
 const spawnRtrn = childProcess.spawnSync(`${distPath}${path.sep}${binary}`, {stdio: 'inherit'});
