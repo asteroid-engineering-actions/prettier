@@ -37,6 +37,9 @@ function getBinary() {
 const binary = getBinary();
 const distPath = path.resolve(`${__dirname}${path.sep}dist`);
 
-console.log(`Running go_action at ${distPath} with ${binary}`);
+if (process.env.AE_ACTION_DEBUG === true) {
+    console.log(`Running go_action at ${distPath} with ${binary}`);
+    console.log();
+}
 
 const spawnRtrn = childProcess.spawnSync(`${distPath}${path.sep}${binary}`, {stdio: 'inherit'});
