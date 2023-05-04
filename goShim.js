@@ -35,7 +35,7 @@ function getBinary() {
 }
 
 const binary = getBinary();
-const distPath = path.resolve(`.${path.sep}dist`);
+const distPath = path.resolve(`${__dirname}${path.sep}dist`);
 
 console.log(`Running go_action at ${distPath} with ${binary}`);
 
