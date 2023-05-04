@@ -1,0 +1,23 @@
+{
+  "name": "prettier-action",
+  "version": "1.0.0",
+  "description": "A GitHub Action to warp Prettier",
+  "main": "src/index.mjs",
+  "scripts": {
+    "build": "ncc build ./prettierCmdExec.js -o ../dist --source-map --license licenses.txt"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/asteroid-engineering-actions/prettier.git"
+  },
+  "bugs": {
+    "url": "https://github.com/asteroid-engineering-actions/prettier/issues"
+  },
+  "homepage": "https://github.com/asteroid-engineering-actions/prettier#readme",
+  "dependencies": {
+    "prettier": "^2.8.4"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.31.1"
+  }
+}

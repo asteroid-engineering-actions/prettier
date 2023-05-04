@@ -1,0 +1,159 @@
+name: pr-validate
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    branches:
+      - main
+  workflow_dispatch:
+jobs:
+  test_build_push:
+    name: Test, Build, Push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          path: ./pr-head
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16.16.0'
+      - run: |
+          npm install
+          npm run build
+        working-directory: ./pr-head/prettier_wrapper
+        name: Build Prettier Wrapper JS
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.20.2'
+      - run: |
+          go test -v ./...
+        working-directory: ./pr-head/go_action
+        name: Test Action
+      - run: |
+          set -euo pipefail
+          IFS=$'\n\t'
+
+          LDFLAGS="-X 'github.com/asteroid-engineering-actions/prettier/go_action/version.BuildMetadata=${{ github.run_id }}.${{ github.run_attempt }}'"
+          platforms=("windows/amd64" "windows/386" "darwin/amd64" "darwin/arm64" "linux/amd64" "linux/arm64")
+
+          build_go() {
+            output="ae_prettier_action_${platform_split[0]}_${platform_split[1]}"
+            
+            if [[ "${platform_split[0]}" == "windows" ]];
+            then
+              output="$output.exe"
+            fi
+            
+            echo "Building binary $output 🚧"
+            
+            env GOOS=${platform_split[0]} GOARCH=${platform_split[1]} go build -trimpath -ldflags="$LDFLAGS" -o ../dist/$output *.go
+            
+            echo "Finished building $output ✅"
+          }
+
+          IFS=$'/'
+          for platform in "${platforms[@]}"
+          do
+            read -r -a platform_split <<< "$platform"
+
+            build_go &
+          done
+          IFS=$'\n\t'
+
+          wait
+
+          cd ../dist
+
+          find . -exec touch -t `git ls-files -z ../go_action/**/*.go | \
+          xargs -0 -n1 -I{} -- git log -1 --date=format:"%Y%m%d%H%M" --format="%ad" {} | \
+          sort -r | head -n 1` {} +
+
+          cd -
+        working-directory: ./pr-head/go_action
+        name: Build Go Binaries
+      - uses: actions/checkout@v3
+        with:
+          ref: releases
+          path: releases
+          fetch-depth: 0
+      - name: Commit Build Outputs
+        if: github.event_name == 'pull_request'
+        run: |
+          rm -rf ./dist/*
+          rm action.yaml
+          rm goShim.js
+          rm LICENSE
+          rm README.md
+          
+          cp ../pr-head/dist/* ./dist/
+          cp ../pr-head/action.yaml ./
+          cp ../pr-head/goShim.js ./
+          cp ../pr-head/LICENSE ./
+          cp ../pr-head/README.md ./
+          
+          if [[ -n "$(git status --porcelain)" ]];
+          then
+            echo "Build outputs have changed... adding commit"
+
+            git config user.name "Dimorphos"
+            git config user.email "dimorphos_asteroid@asteroid.engineering"
+            git add --all
+            git commit -m "Build Outputs from ${{ github.run_id }}.${{ github.run_attempt }}"
+            git push
+          else
+            echo "Build outputs have not changed"
+          fi
+          
+          VERSION=$(./dist/ae_prettier_action_linux_amd64 -version)
+          
+          VERSION="${VERSION#[vV]}"
+
+          Mmp="${VERSION%+*}"
+          Mmp="${Mmp%-*}"
+
+          IFS=$'.'
+          read -r -a Mmp <<< "$Mmp"
+          IFS=$'\n\t'
+
+          VERSION_MAJOR="${Mmp[0]}"
+          VERSION_MINOR="${Mmp[1]:-x}"
+          VERSION_PATCH="${Mmp[2]:-x}"
+
+          VERSION_PRERELEASE="${VERSION#*-}"
+          
+          if [[ "$VERSION" == "$VERSION_PRERELEASE" ]];
+          then
+              VERSION_PRERELEASE="pr.${{ github.event.pull_request.number }}"
+          else
+              VERSION_PRERELEASE="pr.${{ github.event.pull_request.number }}.${VERSION_PRERELEASE%+*}"
+          fi
+
+          BUILD_METADATA="${VERSION#*+}"
+
+          if [[ "$BUILD_METADATA" == "$VERSION" ]];
+          then
+              BUILD_METADATA=""
+          fi
+          
+          PR_FULL_VERSION_TAG="$VERSION_MAJOR.$VERSION_MINOR.$VERSION_PATCH-$VERSION_PRERELEASE+$BUILD_METADATA"
+          PR_TAG="pr-${{ github.event.pull_request.number }}"
+          
+          git tag -d $PR_FULL_VERSION_TAG || echo "$PR_FULL_VERSION_TAG tag not found"
+          git tag -d $PR_TAG || echo "$PR_TAG not found"
+          git push --delete origin $PR_FULL_VERSION_TAG || echo "origin/$PR_FULL_VERSION_TAG tag not found"
+          git push --delete origin $PR_TAG || echo "origin/$PR_TAG not found"
+          
+          git tag $PR_FULL_VERSION_TAG
+          git tag $PR_TAG
+          git push --tags
+        working-directory: ./releases
+      - name: Run Self
+        uses: ./pr-head
+        with:
+          name: 'Dimorphos'
